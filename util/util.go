@@ -27,7 +27,9 @@ func LinesInStdin() []string {
 func readLines(scanner *bufio.Scanner) (result []string) {
 	for scanner.Scan() {
 		line := scanner.Text()
-		result = append(result, line)
+		if len(line) > 0 {
+			result = append(result, line)
+		}
 	}
 	return
 }
