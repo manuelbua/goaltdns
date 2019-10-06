@@ -12,7 +12,7 @@ import (
 
 	"github.com/bobesa/go-domain-util/domainutil"
 	"github.com/subfinder/goaltdns/altdns"
-	"github.com/subfinder/goaltdns/util"
+	"github.com/manuelbua/goaltdns/util"
 )
 
 func loge(text string, args ...interface{}) {
