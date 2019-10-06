@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"math"
 	"os"
 	"sync"
 	// "time"
@@ -78,7 +79,9 @@ func main() {
 
 	hosts := make(chan string)
 	jobs := sync.WaitGroup{}
-	for i := 0; i < 16; i++ {
+
+	var concurrency int = int(math.Round( float64(runtime.NumCPU()) * 1.5 ))
+	for i := 0; i < concurrency; i++ {
 		jobs.Add(1)
 		go func() {
 			defer jobs.Done()
