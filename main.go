@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
+	"runtime"
 
 	"github.com/bobesa/go-domain-util/domainutil"
 	"github.com/subfinder/goaltdns/altdns"
@@ -13,12 +15,12 @@ import (
 )
 
 func main() {
-	var wordlist, host, list, output string
+	var wordlist, host, list/*, output*/ string
 	hostList := []string{}
 	flag.StringVar(&host, "h", "", "Host to generate permutations for")
 	flag.StringVar(&list, "l", "", "List of hosts to generate permutations for")
 	flag.StringVar(&wordlist, "w", "words.txt", "Wordlist to generate permutations with")
-	flag.StringVar(&output, "o", "", "File to write permutation output to (optional)")
+	// flag.StringVar(&output, "o", "", "File to write permutation output to (optional)")
 
 	flag.Parse()
 
@@ -39,17 +41,17 @@ func main() {
 		hostList = append(hostList, util.LinesInStdin()...)
 	}
 
-	var f *os.File
+	// var f *os.File
 	var err error
-	if output != "" {
-		f, err = os.OpenFile(output, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
-		if err != nil {
-			fmt.Printf("output: %s\n", err)
-			os.Exit(1)
-		}
+	// if output != "" {
+	// 	f, err = os.OpenFile(output, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+	// 	if err != nil {
+	// 		fmt.Printf("output: %s\n", err)
+	// 		os.Exit(1)
+	// 	}
 
-		defer f.Close()
-	}
+	// 	defer f.Close()
+	// }
 
 	altdns, err := altdns.New(wordlist)
 	if err != nil {
@@ -59,13 +61,13 @@ func main() {
 
 	writerJob := sync.WaitGroup{}
 
-	writequeue := make(chan string)
+	writequeue := make(chan string, 10000)
 
 	writerJob.Add(1)
 	go func() {
 		defer writerJob.Done()
 
-		w := bufio.NewWriter(f)
+		w := bufio.NewWriter(os.Stdout)
 		defer w.Flush()
 
 		for permutation := range writequeue {
@@ -86,24 +88,40 @@ func main() {
 				permutation := fmt.Sprintf("%s.%s\n", r, domainSuffix)
 
 				// avoid duplicates
-				if _, ok := uniq[permutation]; ok {
+				if uniq[permutation] {
 					continue
 				}
 
 				uniq[permutation] = true
 
-				if output == "" {
-					fmt.Printf("%s", permutation)
-				} else {
-					writequeue <- permutation
-				}
+				// if output == "" {
+				// 	fmt.Printf("%s", permutation)
+				// } else {
+				writequeue <- permutation
+				// }
 			}
+			uniq = nil
 		}(u)
 	}
+
+	ticker := time.NewTicker(1 * time.Second)
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case <- done:
+				return
+			case <-ticker.C:
+				runtime.GC()
+			}
+		}
+	}()
 
 	jobs.Wait()
 
 	close(writequeue)
 
 	writerJob.Wait()
+	ticker.Stop()
+	done <- true
 }
