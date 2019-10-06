@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"time"
-	"runtime"
+	// "time"
+	// "runtime"
 
 	"github.com/bobesa/go-domain-util/domainutil"
 	"github.com/subfinder/goaltdns/altdns"
@@ -75,53 +75,88 @@ func main() {
 		}
 	}()
 
+
+	hosts := make(chan string)
 	jobs := sync.WaitGroup{}
-
-	for _, u := range hostList {
-		subdomain := domainutil.Subdomain(u)
-		domainSuffix := domainutil.Domain(u)
+	for i := 0; i < 16; i++ {
 		jobs.Add(1)
-		go func(domain string) {
+		go func() {
 			defer jobs.Done()
-			uniq := make(map[string]bool)
-			for r := range altdns.Permute(subdomain) {
-				permutation := fmt.Sprintf("%s.%s\n", r, domainSuffix)
+			for h := range hosts {
+				subdomain := domainutil.Subdomain(h)
+				domainSuffix := domainutil.Domain(h)
 
-				// avoid duplicates
-				if uniq[permutation] {
-					continue
+				uniq := make(map[string]bool)
+				for r := range altdns.Permute(subdomain) {
+					permutation := fmt.Sprintf("%s.%s\n", r, domainSuffix)
+
+					// avoid duplicates
+					if uniq[permutation] {
+						continue
+					}
+
+					uniq[permutation] = true
+
+					// if output == "" {
+					// 	fmt.Printf("%s", permutation)
+					// } else {
+					writequeue <- permutation
+					// }
 				}
-
-				uniq[permutation] = true
-
-				// if output == "" {
-				// 	fmt.Printf("%s", permutation)
-				// } else {
-				writequeue <- permutation
-				// }
 			}
-			uniq = nil
-		}(u)
+		}()
 	}
 
-	ticker := time.NewTicker(1 * time.Second)
-	done := make(chan bool)
-	go func() {
-		for {
-			select {
-			case <- done:
-				return
-			case <-ticker.C:
-				runtime.GC()
-			}
-		}
-	}()
+	for _, u := range hostList {
+		hosts <- u
+	}
+	close(hosts)
+
+	// for _, u := range hostList {
+	// 	subdomain := domainutil.Subdomain(u)
+	// 	domainSuffix := domainutil.Domain(u)
+	// 	jobs.Add(1)
+	// 	go func(domain string) {
+	// 		defer jobs.Done()
+	// 		uniq := make(map[string]bool)
+	// 		for r := range altdns.Permute(subdomain) {
+	// 			permutation := fmt.Sprintf("%s.%s\n", r, domainSuffix)
+
+	// 			// avoid duplicates
+	// 			if uniq[permutation] {
+	// 				continue
+	// 			}
+
+	// 			uniq[permutation] = true
+
+	// 			// if output == "" {
+	// 			// 	fmt.Printf("%s", permutation)
+	// 			// } else {
+	// 			writequeue <- permutation
+	// 			// }
+	// 		}
+	// 		uniq = nil
+	// 	}(u)
+	// }
+
+	// ticker := time.NewTicker(1 * time.Second)
+	// done := make(chan bool)
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case <- done:
+	// 			return
+	// 		case <-ticker.C:
+	// 			runtime.GC()
+	// 		}
+	// 	}
+	// }()
 
 	jobs.Wait()
 
 	close(writequeue)
 
 	writerJob.Wait()
-	ticker.Stop()
-	done <- true
+	// ticker.Stop()
+	// done <- true
 }
