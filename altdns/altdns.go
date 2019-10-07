@@ -123,47 +123,57 @@ func New(wordList string) (*AltDNS, error) {
 }
 
 // Permute permutes a given domain and sends output on a channel
-func (a *AltDNS) Permute(domain string) chan string {
+func (a *AltDNS) Permute(domain string, config Config) chan string {
 	wg := sync.WaitGroup{}
 	results := make(chan string)
 
 	go func(domain string) {
 		defer close(results)
 
-		// Insert all indexes
-		wg.Add(1)
-		go func(domain string, results chan string) {
-			defer wg.Done()
-			a.insertIndexes(domain, results)
-		}(domain, results)
+		if !config.Disable_permute_1 {
+			// Insert all indexes
+			wg.Add(1)
+			go func(domain string, results chan string) {
+				defer wg.Done()
+				a.insertIndexes(domain, results)
+			}(domain, results)
+		}
 
-		// Insert all dash
-		wg.Add(1)
-		go func(domain string, results chan string) {
-			defer wg.Done()
-			a.insertDashes(domain, results)
-		}(domain, results)
+		if !config.Disable_permute_2 {
+			// Insert all dash
+			wg.Add(1)
+			go func(domain string, results chan string) {
+				defer wg.Done()
+				a.insertDashes(domain, results)
+			}(domain, results)
+		}
 
-		// Insert Number Suffix Subdomains
-		wg.Add(1)
-		go func(domain string, results chan string) {
-			defer wg.Done()
-			a.insertNumberSuffixes(domain, results)
-		}(domain, results)
+		if !config.Disable_permute_3 {
+			// Insert Number Suffix Subdomains
+			wg.Add(1)
+			go func(domain string, results chan string) {
+				defer wg.Done()
+				a.insertNumberSuffixes(domain, results)
+			}(domain, results)
+		}
 
-		// Join Words Subdomains
-		wg.Add(1)
-		go func(domain string, results chan string) {
-			defer wg.Done()
-			a.insertWordsSubdomains(domain, results)
-		}(domain, results)
+		if !config.Disable_permute_4 {
+			// Join Words Subdomains
+			wg.Add(1)
+			go func(domain string, results chan string) {
+				defer wg.Done()
+				a.insertWordsSubdomains(domain, results)
+			}(domain, results)
+		}
 
-		// Permute numbers 0x -> 01, 02, 03, ...
-		wg.Add(1)
-		go func(domain string, results chan string) {
-			defer wg.Done()
-			a.expandNumbers(domain, results)
-		}(domain, results)
+		if !config.Disable_permute_5 {
+			// Permute numbers 0x -> 01, 02, 03, ...
+			wg.Add(1)
+			go func(domain string, results chan string) {
+				defer wg.Done()
+				a.expandNumbers(domain, results)
+			}(domain, results)
+		}
 
 		wg.Wait()
 	}(domain)
@@ -172,16 +182,16 @@ func (a *AltDNS) Permute(domain string) chan string {
 }
 
 // Permutations permutes a given domain and return a list of permutations
-func (a *AltDNS) Permutations(domain string) (permutations []string) {
-	uniq := make(map[string]bool)
-	for r := range a.Permute(domain) {
-		// avoid duplicates
-		if _, ok := uniq[r]; ok {
-			continue
-		}
+// func (a *AltDNS) Permutations(domain string) (permutations []string) {
+// 	uniq := make(map[string]bool)
+// 	for r := range a.Permute(domain) {
+// 		// avoid duplicates
+// 		if _, ok := uniq[r]; ok {
+// 			continue
+// 		}
 
-		uniq[r] = true
-		permutations = append(permutations, r)
-	}
-	return permutations
-}
+// 		uniq[r] = true
+// 		permutations = append(permutations, r)
+// 	}
+// 	return permutations
+// }
