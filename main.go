@@ -11,8 +11,8 @@ import (
 	"runtime"
 
 	"github.com/bobesa/go-domain-util/domainutil"
-	"github.com/subfinder/goaltdns/altdns"
-	"github.com/subfinder/goaltdns/util"
+	"github.com/manuelbua/goaltdns/altdns"
+	"github.com/manuelbua/goaltdns/util"
 )
 
 func loge(text string, args ...interface{}) {
@@ -39,14 +39,6 @@ func main() {
 	flag.BoolVar(&config.Disable_permute_5, "5", false, "Disable expand numbers")
 
 	flag.Parse()
-
-	// fmt.Println(config.Disable_permute_1)
-	// fmt.Println(config.Disable_permute_2)
-	// fmt.Println(config.Disable_permute_3)
-	// fmt.Println(config.Disable_permute_4)
-	// fmt.Println(config.Disable_permute_5)
-
-	// os.Exit(0)
 
 	if config.Host == "" && config.List == "" && !util.PipeGiven() {
 		fmt.Printf("%s: no host/hosts specified!\n", os.Args[0])
