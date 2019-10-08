@@ -16,6 +16,16 @@ var (
 // AltDNS holds words, etc
 type AltDNS struct {
 	PermutationWords []string
+	Config Config
+}
+
+type Config struct {
+	Wordlist 				string
+	NoInsertIndices			bool
+	NoInsertDashes			bool
+	NoInsertNumberSuffixes	bool
+	NoInsertWordsSubdomains	bool
+	NoExpandNumbers			bool
 }
 
 func (a *AltDNS) insertDashes(domain string, results chan string) {
@@ -105,10 +115,12 @@ func (a *AltDNS) expandNumbers(domain string, results chan string) {
 }
 
 // New Returns a new altdns object
-func New(wordList string) (*AltDNS, error) {
+func New(config Config) (*AltDNS, error) {
 	altdns := AltDNS{}
 
-	f, err := os.Open(wordList)
+	altdns.Config = config
+
+	f, err := os.Open(config.Wordlist)
 	if err != nil {
 		return &altdns, err
 	}
@@ -123,14 +135,14 @@ func New(wordList string) (*AltDNS, error) {
 }
 
 // Permute permutes a given domain and sends output on a channel
-func (a *AltDNS) Permute(domain string, config Config) chan string {
+func (a *AltDNS) Permute(domain string) chan string {
 	wg := sync.WaitGroup{}
 	results := make(chan string)
 
 	go func(domain string) {
 		defer close(results)
 
-		if !config.Disable_permute_1 {
+		if !a.Config.NoInsertIndices {
 			// Insert all indexes
 			wg.Add(1)
 			go func(domain string, results chan string) {
@@ -139,7 +151,7 @@ func (a *AltDNS) Permute(domain string, config Config) chan string {
 			}(domain, results)
 		}
 
-		if !config.Disable_permute_2 {
+		if !a.Config.NoInsertDashes {
 			// Insert all dash
 			wg.Add(1)
 			go func(domain string, results chan string) {
@@ -148,7 +160,7 @@ func (a *AltDNS) Permute(domain string, config Config) chan string {
 			}(domain, results)
 		}
 
-		if !config.Disable_permute_3 {
+		if !a.Config.NoInsertNumberSuffixes {
 			// Insert Number Suffix Subdomains
 			wg.Add(1)
 			go func(domain string, results chan string) {
@@ -157,7 +169,7 @@ func (a *AltDNS) Permute(domain string, config Config) chan string {
 			}(domain, results)
 		}
 
-		if !config.Disable_permute_4 {
+		if !a.Config.NoInsertWordsSubdomains {
 			// Join Words Subdomains
 			wg.Add(1)
 			go func(domain string, results chan string) {
@@ -166,7 +178,7 @@ func (a *AltDNS) Permute(domain string, config Config) chan string {
 			}(domain, results)
 		}
 
-		if !config.Disable_permute_5 {
+		if !a.Config.NoExpandNumbers {
 			// Permute numbers 0x -> 01, 02, 03, ...
 			wg.Add(1)
 			go func(domain string, results chan string) {

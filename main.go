@@ -23,20 +23,28 @@ func loge(text string, args ...interface{}) {
 	}
 }
 
+type Config struct {
+	Host		string
+	List 		string
+	Output		string
+	Verbose		bool
+	Altdns		altdns.Config
+}
+
 func main() {
-	var config altdns.Config
+	var config Config
 
 	flag.StringVar(&config.Host, "h", "", "Host to generate permutations for")
 	flag.StringVar(&config.List, "l", "", "List of hosts to generate permutations for")
-	flag.StringVar(&config.Wordlist, "w", "words.txt", "Wordlist to generate permutations with")
+	flag.StringVar(&config.Altdns.Wordlist, "w", "words.txt", "Wordlist to generate permutations with")
 	flag.StringVar(&config.Output, "o", "", "File to write permutation output to (optional)")
 	flag.BoolVar(&config.Verbose, "v", false, "Enable verbosity")
 
-	flag.BoolVar(&config.Disable_permute_1, "1", false, "Disable insert indices")
-	flag.BoolVar(&config.Disable_permute_2, "2", false, "Disable insert dashes")
-	flag.BoolVar(&config.Disable_permute_3, "3", false, "Disable insert number suffixes")
-	flag.BoolVar(&config.Disable_permute_4, "4", false, "Disable join words with subdomain")
-	flag.BoolVar(&config.Disable_permute_5, "5", false, "Disable expand numbers")
+	flag.BoolVar(&config.Altdns.NoInsertIndices, "1", false, "Disable insert indices")
+	flag.BoolVar(&config.Altdns.NoInsertDashes, "2", false, "Disable insert dashes")
+	flag.BoolVar(&config.Altdns.NoInsertNumberSuffixes, "3", false, "Disable insert number suffixes")
+	flag.BoolVar(&config.Altdns.NoInsertWordsSubdomains, "4", false, "Disable insert words in subdomain")
+	flag.BoolVar(&config.Altdns.NoExpandNumbers, "5", false, "Disable expand numbers")
 
 	flag.Parse()
 
@@ -71,7 +79,7 @@ func main() {
 		defer outfile.Close()
 	}
 
-	adns, err := altdns.New(config.Wordlist)
+	adns, err := altdns.New(config.Altdns)
 	if err != nil {
 		fmt.Printf("wordlist: %s\n", err)
 		os.Exit(1)
@@ -103,11 +111,11 @@ func main() {
 		var yesno string
 
 		loge("Permutations:\n")
-		yesno = "X"; if config.Disable_permute_1 { yesno = " " }; loge("  [%s] Insert indices\n", yesno)
-		yesno = "X"; if config.Disable_permute_2 { yesno = " " }; loge("  [%s] Insert dashes\n", yesno)
-		yesno = "X"; if config.Disable_permute_3 { yesno = " " }; loge("  [%s] Insert number suffixes\n", yesno)
-		yesno = "X"; if config.Disable_permute_4 { yesno = " " }; loge("  [%s] Join words with subdomain\n", yesno)
-		yesno = "X"; if config.Disable_permute_5 { yesno = " " }; loge("  [%s] Expand numbers\n", yesno)
+		yesno = "X"; if config.Altdns.NoInsertIndices { yesno = " " }; loge("  [%s] Insert indices\n", yesno)
+		yesno = "X"; if config.Altdns.NoInsertDashes { yesno = " " }; loge("  [%s] Insert dashes\n", yesno)
+		yesno = "X"; if config.Altdns.NoInsertNumberSuffixes { yesno = " " }; loge("  [%s] Insert number suffixes\n", yesno)
+		yesno = "X"; if config.Altdns.NoInsertWordsSubdomains { yesno = " " }; loge("  [%s] Join words with subdomain\n", yesno)
+		yesno = "X"; if config.Altdns.NoExpandNumbers { yesno = " " }; loge("  [%s] Expand numbers\n", yesno)
 	}
 
 	for i := 0; i < concurrency; i++ {
@@ -119,7 +127,7 @@ func main() {
 				domainSuffix := domainutil.Domain(h)
 
 				uniq := make(map[string]bool)
-				for r := range adns.Permute(subdomain, config) {
+				for r := range adns.Permute(subdomain) {
 					permutation := fmt.Sprintf("%s.%s\n", r, domainSuffix)
 
 					// avoid duplicates
