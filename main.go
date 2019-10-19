@@ -7,7 +7,6 @@ import (
 	"math"
 	"os"
 	"sync"
-	// "time"
 	"runtime"
 
 	"github.com/bobesa/go-domain-util/domainutil"
