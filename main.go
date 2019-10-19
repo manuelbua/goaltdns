@@ -27,6 +27,7 @@ type Config struct {
 	List 		string
 	Output		string
 	Verbose		bool
+	Concurrency int
 	Altdns		altdns.Config
 }
 
@@ -38,6 +39,7 @@ func main() {
 	flag.StringVar(&config.Altdns.Wordlist, "w", "words.txt", "Wordlist to generate permutations with")
 	flag.StringVar(&config.Output, "o", "", "File to write permutation output to (optional)")
 	flag.BoolVar(&config.Verbose, "v", false, "Enable verbosity")
+	flag.IntVar(&config.Concurrency, "c", 0, "Specify concurrency (0 means auto adjust)")
 
 	flag.BoolVar(&config.Altdns.NoInsertIndices, "1", false, "Disable insert indices")
 	flag.BoolVar(&config.Altdns.NoInsertDashes, "2", false, "Disable insert dashes")
@@ -104,6 +106,9 @@ func main() {
 	jobs := sync.WaitGroup{}
 
 	var concurrency int = int(math.Round( float64(runtime.NumCPU()) * 1.5 ))
+	if config.Concurrency > 0 {
+		concurrency = config.Concurrency
+	}
 
 	if config.Verbose {
 		loge("Concurrency set to %d\n", concurrency)
